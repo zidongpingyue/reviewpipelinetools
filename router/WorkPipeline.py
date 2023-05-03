@@ -104,10 +104,12 @@ def sentencejudgetask(context,non_pass_context):
     for question_index,texts_standard_answer in enumerate(textarrays_question_answer):
         question_result=[]
         text_answer=texts_answer[question_index]
-        for point_index,text_standard_answer in enumerate(texts_standard_answer):
+        for point_index,text_standard_answer_pack in enumerate(texts_standard_answer):
             # print("long:",text_answer,"short:",text_standard_answer)
+            text_standard_answer=text_standard_answer_pack[0]
+            text_standard_answer_score=int(text_standard_answer_pack[1])
             score,entails=ModelLoader.utilmodels.SentenceMatch.CalculateScore(text_answer,text_standard_answer)
-            question_result.append({"keysentence":text_standard_answer,"score":str(score),"entails":list(entails)})
+            question_result.append({"keysentence":text_standard_answer,"score":str(int(score)*text_standard_answer_score),"entails":list(entails)})
         review_result.append(question_result)
     context={
         "workstate":"sentencejudge",

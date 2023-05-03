@@ -12,7 +12,17 @@ print("shape:",img.shape)
 data = {"imgs_base64":[
     img2base64(img)[0]
     # Utils.img2base64(cv2.imread("../img_data/img_afterrec/IMG_20230426_192444_rec.png"))
-],"question_answer":[["推翻了清朝统治"],["是农民战争的高峰","加速了清朝政府的衰亡"],["推翻了元朝政府的统治"]]}
+],"question_answer":[
+    [ 
+     ["推翻了清朝统治",1]
+    ],
+    [
+        ["是农民战争的高峰",1],
+        ["加速了清朝政府的衰亡",2]],
+    [
+        ["推翻了元朝政府的统治",1]
+    ]
+    ]}
 json_data = json.dumps(data)
 apiname=f"/runworkpipeline"
 conn = http.client.HTTPConnection(f"{TestConfig.testhost}")

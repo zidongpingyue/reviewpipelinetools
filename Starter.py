@@ -77,7 +77,7 @@ app.register_blueprint(workpipelineblueprint)
 
 if __name__=="__main__":
     try:
-        app.run(debug=True,port=8087,use_reloader=True)
+        app.run(debug=True,port=8087,use_reloader=False)
         # app.run(debug=True,port=8086,use_reloader=True)
     except Exception :
         traceback.print_exc()
