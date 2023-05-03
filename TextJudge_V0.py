@@ -8,12 +8,21 @@ class TextJudger:
     def __init__(self):
       self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
-      self.pattern=r"[^，。、：\n]+"
+      self.pattern=Config.split_pattern
       print("loading SentenceTransformer..............")
       self.smodel = SentenceTransformer(Config.smodel_path,device=self.device)
+      for param in self.smodel.parameters():
+          param.grad = None
+      self.smodel.eval()
       print("loading CrossEncoder.................") 
       self.cmodel = CrossEncoder(Config.cmodel_path,device=self.device)
+      
+      for param in self.cmodel.model.parameters():
+          param.grad = None
+      self.cmodel.model.eval()
       print("loading complete.....................")
+      
+      
       self.   scoremap=[0,1,0.5] 
       pass
     #获取topk相似的句子

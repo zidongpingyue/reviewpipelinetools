@@ -66,7 +66,10 @@ class DocCorrector:
       reload_rec_model(self.scmodel.DocTr,rec_path)
       reload_seg_model(self.scmodel.msk,seg_path)
       print("loading DocCorrector complete")
+      for param in self.scmodel.parameters():
+        param.grad = None
       self.scmodel.eval()
+      
       pass
     def rectify(self,img):
         # im_ori = np.array(img)

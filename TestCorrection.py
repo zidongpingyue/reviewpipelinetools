@@ -1,4 +1,5 @@
 from SentenceCorrection import SentenceCorrector
+from TestData import testcorrectlongtext
 stn_corrector=SentenceCorrector()
-result=stn_corrector.sentencecorrect(["你是一各好学升","可以去生请发明专力","","可以去生请发明专力","少先队员因该为老人让坐"])
+result=stn_corrector.sentencecorrect(testcorrectlongtext)
 print(result)
