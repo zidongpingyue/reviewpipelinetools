@@ -29,6 +29,7 @@ class TextJudger:
     def GetTopKSim (self,longsentence,shortsentence,topk=4):
         result = [(m.group(), m.start()) for m in re.finditer(self.pattern, longsentence)]
         longsentences = [i[0] for i in result]
+        
         # print(longsentences)
         longembeddings = self.smodel.encode(longsentences)
         shortembedding = self.smodel.encode(shortsentence)
@@ -44,6 +45,7 @@ class TextJudger:
         #以余弦相似度排序
         data=sorted(data,key=lambda x: x[1], reverse=True)
         retdata=[]
+        topk=min(topk,len(data))
         for i in range(topk):
             retdata.append(data[i])
         return retdata
@@ -65,6 +67,7 @@ class TextJudger:
                 entails.append(i)
         return score,entails
     def CalculateScore(self,long_sentence,real_short_sentence):
+            
             topk_sentences=self.GetTopKSim(long_sentence,real_short_sentence)
             topk_labels=self.GetAdvancedMatchScores(topk_sentences,real_short_sentence)
             final_score=self.CalculateLabelScore(topk_labels) 

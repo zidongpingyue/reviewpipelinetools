@@ -16,14 +16,16 @@ class PipelineTask:
 class WorkPipeline:
       def __init__(self) -> None:
           self.pipeline=[]
-          self.context={}
+          self.pass_context={}
+          self.non_pass_context={}
           self.currenttask:PipelineTask
           pass
-      def runpipeline(self,init_data:dict):
-          self.context=init_data
+      def runpipeline(self,pass_init_data:dict,global_init_data:dict):
+          self.pass_context=pass_init_data
+          self.non_pass_context=global_init_data
           for task in self.pipeline:
-              self.context=task.execute_fn(self.context)
-          return self.context
+              self.pass_context=task.execute_fn(self.pass_context,self.non_pass_context)
+          return self.pass_context
           pass
       def addpipelinetask(self,execute_fn):
           task_=PipelineTask(execute_fn=execute_fn)
@@ -42,7 +44,7 @@ import ModelLoader
 """
 json => {"workstate","imgs_base64","imgs_hash","question_answers"}
 """
-def parsetask(context):
+def parsetask(context,non_pass_context):
     imgs_raw,imgs_buffer=Utils.multi_base64toimg(context["imgs_base64"])
     imgs_hash=Utils.multi_bytes2hash(imgs_buffer)
     context={
@@ -50,9 +52,10 @@ def parsetask(context):
         "imgs_raw":imgs_raw,
         "imgs_hash":imgs_hash
     }
+    non_pass_context["imgs_hash"]=imgs_hash
     return context
     
-def imgrecttask(context):
+def imgrecttask(context,non_pass_context):
     imgs_raw=context["imgs_raw"]
     imgs_hash=context["imgs_hash"]
     
@@ -66,7 +69,7 @@ def imgrecttask(context):
     }
     return context
 
-def imgdetecttask(context):
+def imgdetecttask(context,non_pass_context):
     imgs_rectified=context["imgs_rectified"]
     imgs_detected,texts_answer=ModelLoader.utilmodels.ImgAchorAndCharaDetection.ClipCardsAndDectectChara(imgs_rectified)
     context={
@@ -76,13 +79,8 @@ def imgdetecttask(context):
     }
     return context
 
-def packinfotesttask(context):
-    context={
-        "workstate":"packinfo",
-        "texts_answer":context["texts_answer_corrected"]
-    }
-    return context
-def sentencecorrecttask(context):
+
+def sentencecorrecttask(context,non_pass_context):
     
     texts_answer_corrected=[]
     for text_answer in context["texts_answer"]:
@@ -90,11 +88,43 @@ def sentencecorrecttask(context):
     context={
         "workstate":"sentencecorrect",
         "texts_answer_corrected":texts_answer_corrected,
+        "texts_answer":context["texts_answer"]
+    }
+    return context
+def sentencejudgetask(context,non_pass_context):
+    textarrays_question_answer=non_pass_context["question_answer"]
+    texts_answer=[]
+    if "texts_answer_corrected" in context:
+        for texts in context["texts_answer_corrected"]:
+            texts_only=[text_split[0] for text_split in texts ] 
+            texts_answer.append("，".join(texts_only))
+    else :
+        texts_answer=context["texts_answer"]
+    review_result=[]
+    for question_index,texts_standard_answer in enumerate(textarrays_question_answer):
+        question_result=[]
+        text_answer=texts_answer[question_index]
+        for point_index,text_standard_answer in enumerate(texts_standard_answer):
+            # print("long:",text_answer,"short:",text_standard_answer)
+            score,entails=ModelLoader.utilmodels.SentenceMatch.CalculateScore(text_answer,text_standard_answer)
+            question_result.append({"keysentence":text_standard_answer,"score":str(score),"entails":list(entails)})
+        review_result.append(question_result)
+    context={
+        "workstate":"sentencejudge",
+        "result":review_result,
+        "texts_answer":texts_answer
+    }
+    return context
+def packinfotesttask(context,non_pass_context):
+    context={
+        "workstate":"packinfo",
+        "texts_answer":context["texts_answer"],
+        "result":context["result"]
     }
     return context
 
 @workpipelineblueprint.route('/runworkpipeline',methods=["POST"])
-def DetectImage():    #显示所有员工信息
+def RunWorkPipeline():    #显示所有员工信息
     workpipeline=WorkPipeline()
     try:
         
@@ -105,16 +135,19 @@ def DetectImage():    #显示所有员工信息
         .addpipelinetask(imgrecttask)\
         .addpipelinetask(imgdetecttask)\
         .addpipelinetask(sentencecorrecttask)\
+        .addpipelinetask(sentencejudgetask)\
         .addpipelinetask(packinfotesttask)
         
 
-        workpipeline.runpipeline(json_dict)
+        workpipeline.runpipeline(json_dict,{
+            "question_answer":json_dict["question_answer"]
+        })
     
-        print("anstext:",workpipeline.context)
+        print("anstext:",workpipeline.pass_context)
         return jsonify(
             {
-                "workstate":workpipeline.context["workstate"],
-                **workpipeline.context
+                "workstate":workpipeline.pass_context["workstate"],
+                **workpipeline.pass_context
             }
         )
     except Exception as e:
